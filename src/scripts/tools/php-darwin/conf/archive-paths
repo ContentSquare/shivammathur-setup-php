@@ -1,0 +1,5 @@
+# Homebrew prefix roots permitted in an archive and merged during installation.
+Cellar
+etc
+opt
+var

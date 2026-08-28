@@ -174,6 +174,13 @@ get_brewed_php() {
   fi
 }
 
+# Install PHP from the architecture-specific php-darwin cache.
+add_php_from_cache() {
+  cache_root="${src:?}/scripts/tools/php-darwin"
+  PHP_DARWIN_ROOT="$cache_root" bash "$cache_root/scripts/install.sh" \
+    "$version" "${debug:?}" "${ts:?}"
+}
+
 # Function to setup PHP 5.6 and newer using Homebrew.
 add_php() {
   action=$1
@@ -182,6 +189,9 @@ add_php() {
   php_keg="php@$version$suffix"
   php_formula="shivammathur/php/$php_keg"
   if [[ "$existing_version" = "false" || -n "$suffix" || "$action" = "upgrade" ]]; then
+    if add_php_from_cache; then
+      return 0
+    fi
     update_dependencies
     add_brew_tap "$php_tap"
   fi

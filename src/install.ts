@@ -17,7 +17,7 @@ export async function getScript(os: string): Promise<string> {
   const url = 'https://setup-php.com/sponsor';
   const filename = os + (await utils.scriptExtension(os));
   const script_path = path.join(__dirname, '../src/scripts', filename);
-  const run_path = script_path.replace(os, 'run');
+  const run_path = utils.scriptRunPath(script_path);
   const extension_csv: string = utils.sanitizeShellInput(
     await utils.getInput('extensions', false),
     true

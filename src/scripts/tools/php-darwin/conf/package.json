@@ -1,0 +1,12 @@
+{
+  "archive_media_type": "application/vnd.shivammathur.php-darwin.cache.layer.v1.tar+zstd",
+  "artifact_type": "application/vnd.shivammathur.php-darwin.cache.v1",
+  "compression_level": 19,
+  "current_version": "8.5",
+  "image": "ghcr.io/shivammathur/php-darwin",
+  "max_install_seconds": 60,
+  "registry_manifest_media_type": "application/vnd.oci.image.manifest.v1+json",
+  "tap": "shivammathur/php",
+  "tap_branch": "main",
+  "tap_repository": "https://github.com/shivammathur/homebrew-php"
+}

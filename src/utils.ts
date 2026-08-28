@@ -408,6 +408,15 @@ export async function scriptExtension(os: string): Promise<string> {
 }
 
 /**
+ * Get the generated run-script path without rewriting parent directories.
+ *
+ * @param scriptPath
+ */
+export function scriptRunPath(scriptPath: string): string {
+  return path.join(path.dirname(scriptPath), `run${path.extname(scriptPath)}`);
+}
+
+/**
  * Function to get script tool
  *
  * @param os

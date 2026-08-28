@@ -254,6 +254,27 @@ describe('Utils tests', () => {
     );
   });
 
+  it('builds the run-script path from only the script filename', () => {
+    const scriptPath = path.join(
+      '/tmp',
+      'feature',
+      'php-darwin-cache',
+      'src',
+      'scripts',
+      'darwin.sh'
+    );
+    expect(utils.scriptRunPath(scriptPath)).toBe(
+      path.join(
+        '/tmp',
+        'feature',
+        'php-darwin-cache',
+        'src',
+        'scripts',
+        'run.sh'
+      )
+    );
+  });
+
   it('checking scriptTool', async () => {
     expect(await utils.scriptTool('linux')).toBe('bash ');
     expect(await utils.scriptTool('darwin')).toBe('bash ');
