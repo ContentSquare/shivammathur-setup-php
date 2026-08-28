@@ -174,6 +174,25 @@ get_brewed_php() {
   fi
 }
 
+# Function to setup PHP from the cached builds.
+setup_cached_versions() {
+  local cache_log
+  local cache_status
+
+  cache_log=$(mktemp "${RUNNER_TEMP:-/tmp}/setup-php-php-darwin.XXXXXX") || return 1
+  if run_script "php-darwin" "$version" "${debug:?}" "${ts:?}" >"$cache_log" 2>&1; then
+    rm -f "$cache_log"
+    return 0
+  else
+    cache_status=$?
+  fi
+  printf 'setup-php: php-darwin cache installation failed (exit %s); falling back to Homebrew\n' \
+    "$cache_status" >&4
+  cat "$cache_log" >&4
+  rm -f "$cache_log"
+  return "$cache_status"
+}
+
 # Function to setup PHP 5.6 and newer using Homebrew.
 add_php() {
   action=$1
@@ -182,6 +201,9 @@ add_php() {
   php_keg="php@$version$suffix"
   php_formula="shivammathur/php/$php_keg"
   if [[ "$existing_version" = "false" || -n "$suffix" || "$action" = "upgrade" ]]; then
+    if [ "${runner:?}" != "self-hosted" ] && [ "${use_package_cache:-true}" != "false" ] && setup_cached_versions; then
+      return 0
+    fi
     update_dependencies
     add_brew_tap "$php_tap"
   fi
@@ -252,13 +274,13 @@ setup_php() {
   if [[ "$version" =~ ${old_versions:?} ]]; then
     run_script "php5-darwin" "${version/./}" >/dev/null 2>&1
     status="Installed"
-  elif [ "${existing_version:0:3}" != "$version" ]; then
-    add_php "install" "$existing_version" >/dev/null 2>&1
+  elif [[ "${existing_version:0:3}" != "$version" || -n "$(get_php_formula_suffix)" ]]; then
+    add_php "install" "$existing_version" 4>&2 >/dev/null 2>&1
     status="Installed"
   elif [[ "${existing_version:0:3}" = "$version" && "${update:?}" = "true" ]]; then
     brew_php_version="$(brew info --json "php@$version" 2>/dev/null | jq -r '.[].versions.stable')"
     if [ "$brew_php_version" != "$existing_version" ]; then
-      add_php "upgrade" "$existing_version" >/dev/null 2>&1
+      add_php "upgrade" "$existing_version" 4>&2 >/dev/null 2>&1
       status="Upgraded"
     fi
   fi
