@@ -11,6 +11,22 @@ param (
   $ini = 'production'
 )
 
+$DebugPreference = 'Continue'
+$VerbosePreference = 'Continue'
+$InformationPreference = 'Continue'
+$ErrorView = 'DetailedView'
+Set-PSDebug -Trace 2
+
+# Function to print complete PowerShell error records during stress testing.
+Function Write-DiagnosticError($stage, $record) {
+  Write-Host "##[group]$stage"
+  Write-Host ($record | Format-List * -Force | Out-String)
+  if($record.ScriptStackTrace) {
+    Write-Host $record.ScriptStackTrace
+  }
+  Write-Host "##[endgroup]"
+}
+
 # Function to log start of a operation.
 Function Step-Log($message) {
   printf "\n\033[90;1m==> \033[0m\033[37;1m%s \033[0m\n" $message
@@ -148,6 +164,7 @@ Function Get-File {
       }
       break;
     } catch {
+      Write-DiagnosticError "Get-File primary attempt $($i + 1) of $Retries failed for $Url" $_
       if ($i -eq ($Retries - 1)) {
         if($FallbackUrl) {
           try {
@@ -157,6 +174,7 @@ Function Get-File {
               Invoke-WebRequest -Uri $FallbackUrl -TimeoutSec $TimeoutSec
             }
           } catch {
+            Write-DiagnosticError "Get-File fallback failed for $FallbackUrl" $_
             throw "Failed to download the assets from $Url and $FallbackUrl"
           }
         } else {
@@ -284,8 +302,12 @@ Function Install-PhpFromCache {
   $url = "$php_builder/releases/download/php$version/$asset"
   Get-File -Url $url -FallbackUrl $php_windows/releases/archives/$asset -OutFile $php_dir\$asset
   Set-PhpDownloadCache -Path $php_dir CurrentUser
-  $php_version = Get-PhpVersionFromUrl -Url $url -ReleaseState Release
-  Install-PhpFromUrl -Url $url -Path $php_dir -PhpVersion $php_version -InstallVCRedist $true
+  $php_manager = Get-Module PhpManager
+  & $php_manager {
+    param($url, $path)
+    $php_version = Get-PhpVersionFromUrl -Url $url -ReleaseState Release
+    Install-PhpFromUrl -Url $url -Path $path -PhpVersion $php_version -InstallVCRedist $true
+  } $url $php_dir
   $ini_path = "$php_dir\php.ini"
   Copy-Item -Path $php_dir\php.ini-production -Destination $ini_path -Force
   Set-PhpIniKey -Key date.timezone -Value UTC -Path $ini_path
@@ -424,11 +446,19 @@ if ($null -eq $installed -or -not("$($installed.Version).".StartsWith(($version 
       try {
         Install-PhpFromCache > $null 2>&1
       } catch {
-        Install-Php -Version $version -Architecture $arch -ThreadSafe $ts -InstallVC -Path $php_dir -TimeZone UTC -InitialPhpIni production -Force > $null 2>&1
+        Write-DiagnosticError "Install-PhpFromCache failed" $_
+        try {
+          Install-Php -Version $version -Architecture $arch -ThreadSafe $ts -InstallVC -Path $php_dir -TimeZone UTC -InitialPhpIni production -Force > $null 2>&1
+        } catch {
+          Write-DiagnosticError "Install-Php fallback failed" $_
+          throw
+        }
       }
     }
     Add-PhpConfig
-  } catch { }
+  } catch {
+    Write-DiagnosticError "PHP setup failed" $_
+  }
 } else {
   if($env:update -eq 'true') {
     Update-Php $php_dir >$null 2>&1
