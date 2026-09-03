@@ -177,7 +177,7 @@ get_brewed_php() {
 # Function to setup PHP from the cached builds.
 setup_cached_versions() {
   latest="releases/download/php-$version" run_script \
-    "php-darwin" "$version" "${debug:?}" "${ts:?}" >/dev/null 2>&1
+    "php-darwin" "$version" "${debug:?}" "${ts:?}"
 }
 
 # Function to setup PHP 5.6 and newer using Homebrew.
@@ -263,12 +263,12 @@ setup_php() {
     run_script "php5-darwin" "${version/./}" >/dev/null 2>&1
     status="Installed"
   elif [[ "${existing_version:0:3}" != "$version" || -n "$(get_php_formula_suffix)" ]]; then
-    add_php "install" "$existing_version" >/dev/null 2>&1
+    add_php "install" "$existing_version"
     status="Installed"
   elif [[ "${existing_version:0:3}" = "$version" && "${update:?}" = "true" ]]; then
     brew_php_version="$(brew info --json "php@$version" 2>/dev/null | jq -r '.[].versions.stable')"
     if [ "$brew_php_version" != "$existing_version" ]; then
-      add_php "upgrade" "$existing_version" >/dev/null 2>&1
+      add_php "upgrade" "$existing_version"
       status="Upgraded"
     fi
   fi
