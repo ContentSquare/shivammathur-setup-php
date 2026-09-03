@@ -176,8 +176,24 @@ get_brewed_php() {
 
 # Function to setup PHP from the cached builds.
 setup_cached_versions() {
-  latest="releases/download/php-$version" run_script \
-    "php-darwin" "$version" "${debug:?}" "${ts:?}"
+  local cache_status
+  local installer_base="$github"
+  local installer_ref="releases/download/php-$version"
+  if [ "${PHP_DARWIN_TEST_MAIN:-false}" = "true" ]; then
+    installer_base="https://raw.githubusercontent.com/shivammathur"
+    installer_ref="main/scripts"
+  fi
+  if github="$installer_base" latest="$installer_ref" run_script \
+    "php-darwin" "$version" "${debug:?}" "${ts:?}"; then
+    return 0
+  else
+    cache_status=$?
+  fi
+  if [ "${PHP_DARWIN_REQUIRE_CACHE:-false}" = "true" ]; then
+    add_log "$cross" "PHP" "php-darwin cache installation failed"
+    exit "$cache_status"
+  fi
+  return "$cache_status"
 }
 
 # Function to setup PHP 5.6 and newer using Homebrew.
