@@ -286,7 +286,8 @@ setup_php() {
     status="Installed"
   elif [[ "${existing_version:0:3}" = "$version" && "${update:?}" = "true" ]]; then
     brew_php_version="$(brew info --json "php@$version" 2>/dev/null | jq -r '.[].versions.stable')"
-    if [ "$brew_php_version" != "$existing_version" ]; then
+    # Homebrew records development snapshots without PHP's runtime -dev suffix.
+    if [ "$brew_php_version" != "$existing_version" ] && [ "$brew_php_version" != "${existing_version%-dev}" ]; then
       add_php "upgrade" "$existing_version" >/dev/null 2>&1 || {
         add_log "${cross:?}" "PHP" "Could not upgrade PHP $version"
         exit 1
